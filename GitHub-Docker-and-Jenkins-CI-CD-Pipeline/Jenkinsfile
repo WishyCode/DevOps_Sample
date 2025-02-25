@@ -1,0 +1,38 @@
+pipeline {
+    agent any //agent runing environment
+    
+    stages { //stages of the pipeline
+        stage('SCM Checkout') {//stage name
+            steps {
+                retry(3) {//retry the stage 3 times if it fails
+                    git branch: 'main', url: 'https://github.com/HGSChandeepa/test-node'
+                    // have to specify the branch name as main,becouse in github initaly get it as master
+                }
+            }
+        }
+        stage('Build Docker Image') {
+            steps {  
+                bat 'docker build -t adomicarts/nodeapp-cuban:%BUILD_NUMBER% .'
+            }
+        }
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([string(credentialsId: 'samin-docker', variable: 'samindocker')]) {
+                    script {
+                        bat "docker login -u adomicarts -p %samindocker%"
+                    }
+                }
+            }
+        }
+        stage('Push Image') {
+            steps {
+                bat 'docker push adomicarts/nodeapp-cuban:%BUILD_NUMBER%'
+            }
+        }
+    }
+    post {
+        always {
+            bat 'docker logout'
+        }
+    }
+}
