@@ -1,32 +1,34 @@
 pipeline {
-    agent any //agent runing environment
+    agent any 
     
-    stages { //stages of the pipeline
-        stage('SCM Checkout') {//stage name
+    stages { 
+        stage('SCM Checkout') {
             steps {
-                retry(3) {//retry the stage 3 times if it fails
-                    git branch: 'main', url: 'https://github.com/HGSChandeepa/test-node'
-                    // have to specify the branch name as main,becouse in github initaly get it as master
+                retry(3) {
+                    checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/WishyCode/DevOps_Sample.git']])
                 }
             }
         }
         stage('Build Docker Image') {
             steps {  
-                bat 'docker build -t adomicarts/nodeapp-cuban:%BUILD_NUMBER% .'
+                bat """
+                cd GitHub-Docker-and-Jenkins-CI-CD-Pipeline
+                docker build -t wishydocker/mydockerapp:%BUILD_NUMBER% .
+                """
             }
         }
         stage('Login to Docker Hub') {
             steps {
-                withCredentials([string(credentialsId: 'samin-docker', variable: 'samindocker')]) {
+                withCredentials([string(credentialsId: 'docker-password-id', variable: 'dockerpassword')]) {
                     script {
-                        bat "docker login -u adomicarts -p %samindocker%"
+                        bat "docker login -u wishydocker -p %dockerpassword%"
                     }
                 }
             }
         }
         stage('Push Image') {
             steps {
-                bat 'docker push adomicarts/nodeapp-cuban:%BUILD_NUMBER%'
+                bat 'docker push wishydocker/mydockerapp:%BUILD_NUMBER%'
             }
         }
     }
